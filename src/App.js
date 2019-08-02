@@ -1,8 +1,12 @@
 import React from 'react';
 import ReactTable from 'react-table';
+import { CSVLink, CSVDownload } from 'react-csv';
 
-import { allResults, callApi } from './webWorker';
+import 'react-table/react-table.css';
 import './App.css';
+import worker_script from './webWorker';
+
+let myWorker;
 
 class App extends React.Component {
   constructor(props) {
@@ -17,49 +21,79 @@ class App extends React.Component {
     };
   }
 
+  componentDidMount() {
+    myWorker = new Worker(worker_script);
+
+    myWorker.onmessage = m => {
+      this.data.unshift(m.data);
+      this.setState({
+        results: this.data
+      });
+    };
+    myWorker.postMessage('im from main');
+
+    setTimeout(() => {
+      myWorker.terminate();
+      myWorker = undefined;
+    }, 1000 * 60 * 60);
+  }
+
   initColumns = () => {
     this.columns = [
       {
-        Header: 'Date & time',
-        accessor: 'datetime'
+        Header: <span>Date & time</span>,
+        accessor: 'datetime',
+        Cell: props => {
+          let time = new Date(props.value).getTime();
+          let date = new Date(time);
+          return date.toString();
+        }
       },
       {
-        Header: 'USD',
+        Header: <span>USD</span>,
         accessor: 'USD'
       },
       {
-        Header: 'JPY',
+        Header: <span>JPY</span>,
         accessor: 'JPY'
       },
       {
-        Header: 'EUR',
+        Header: <span>EUR</span>,
         accessor: 'EUR'
       },
       {
-        Header: 'HRK',
+        Header: <span>HRK</span>,
         accessor: 'HRK'
       }
     ];
   };
 
   render() {
-    console.log('rendering again?');
-    let w;
-
-    if (typeof Worker !== 'undefined' && typeof w === 'undefined') {
-      console.log('test 1');
-      w = new Worker(callApi());
-    }
-
-    setTimeout(() => {
-      console.log('test 2');
-      callApi(true);
-      w.terminate();
-      w = undefined;
-    }, 1000 * 6 /*0 * 60*/);
     this.initColumns();
+
+    const csvData = this.data.map(record => {
+      return {
+        datetime: record.datetime,
+        USD: record.USD,
+        JPY: record.JPY,
+        EUR: record.EUR,
+        HRK: record.HRK
+      };
+    });
+
     return (
-      <ReactTable data={allResults} columns={this.columns} filterable={true} />
+      <div className="App">
+        <ReactTable
+          data={this.data}
+          columns={this.columns}
+          filterable={true}
+          sortable={true}
+          defaultPageSize={10}
+        />
+        <CSVLink data={csvData} target="_blank">
+          Download file
+        </CSVLink>
+      </div>
     );
   }
 }

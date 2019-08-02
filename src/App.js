@@ -13,8 +13,7 @@ class App extends React.Component {
 
     this.state = {
       results: [],
-      timeExpired: false,
-      isOn: false
+      timeExpired: false
     };
   }
 
@@ -43,28 +42,18 @@ class App extends React.Component {
     ];
   };
 
-  isWorkerOn = () => {
-    if (this.state.isOn) {
-      callApi();
-    } else {
-      return;
-    }
-  };
-
   render() {
     console.log('rendering again?');
     let w;
 
     if (typeof Worker !== 'undefined' && typeof w === 'undefined') {
       console.log('test 1');
-      this.setState({ isOn: true });
-      w = new Worker(this.isWorkerOn());
+      w = new Worker(callApi());
     }
 
     setTimeout(() => {
       console.log('test 2');
-      // callApi(true);
-      this.setState({ isOn: false });
+      callApi(true);
       w.terminate();
       w = undefined;
     }, 1000 * 6 /*0 * 60*/);
